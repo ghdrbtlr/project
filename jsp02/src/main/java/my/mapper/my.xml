@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- namespace : sql 명령어들의 집합, java의 패키지와 같은 개념, sql을 사용하기전 회원관리다, 게시판이다...등 
+	구분짓기 위해 주로 사용됨 -->
+<mapper namespace="my">
+	<insert id="memberInsert">
+		insert into my_member(userid,passwd,name,email)
+		values
+		(#{userid},#{passwd},#{name},#{email})
+	</insert>
+
+	<select id="list" resultType="my.dto.MyDTO">
+		select *
+		from(
+		select rownum as rn, A.*
+		from (select num,tab,writer,subject,reg_date,readcount,likecount,
+		(select count(*) from my_comment
+		where my_num=num) comment_count
+		from my
+		order by reg_date desc)A
+		) where rn between #{start} and #{end}
+		<if test=" tab != null and tab != '' ">
+			and tab = #{tab}
+		</if>
+	</select>
+
+	<select id="logincheck" resultType="String">
+		select name from my_member
+		where userid=#{userid} and passwd=#{passwd}
+	</select>
+
+	<select id="count" resultType="int">
+		select count(*) from my
+		<choose>
+		 <when test="tab != null and tab != ''">
+		  where tab=#{tab}
+		 </when>
+		 <otherwise>
+		  where likecount >= 5
+		 </otherwise>
+		</choose>
+		
+		<!-- <if test=" tab != null and tab != '' ">
+			and tab=#{tab}
+		</if> -->
+	</select>
+
+
+	<select id="view" resultType="my.dto.MyMemberDTO">
+		select * from my_member
+		where
+		userid=#{userid}
+	</select>
+
+	<update id="update">
+		update my_member set name=#{name}, email=#{email}
+		where userid=#{userid} and passwd=#{passwd}
+	</update>
+
+	<insert id="write" parameterType="my.dto.MyDTO">
+		insert into my
+		(num,tab,writer,subject,content,filename)
+		values
+		((select
+		nvl(max(num)+1,1) from my), 
+		#{tab},#{writer},#{subject},#{content},#{filename})
+	</insert>
+
+
+	<update id="plusReadCount">
+		update my set readcount=readcount+1
+		where num=#{num}
+	</update>
+
+	<select id="myview" resultType="my.dto.MyDTO">
+		select * from my
+		where num=#{num}
+	</select>
+
+	<insert id="commentAdd">
+		insert into my_comment
+		(comment_num,my_num,writer,content)
+		values
+		((select nvl(max(comment_num)+1,1) from my_comment)
+		,#{my_num},#{writer},#{content})
+	</insert>
+
+	<select id="commentList" resultType="my.dto.MyCommentDTO">
+		select *
+		from(
+		select rownum as rn, A.*
+		from (select *
+		from my_comment
+		order by reg_date desc)A
+		)where rn between #{start} and #{end} and
+		my_num=#{num}
+	</select>
+
+	<select id="comment_count" resultType="int">
+		select count(*) from my_comment
+		where my_num=#{num}
+	</select>
+
+	<select id="searchList" resultType="my.dto.MyDTO">
+		select *
+		from(
+		select rownum as rn, A.*
+		from (select num,tab,writer,subject,reg_date,readcount,
+		(select count(*) from my_comment
+		where my_num=num) comment_count
+		from my 
+		where 
+		writer like #{keyword}
+		or subject like #{keyword}
+		order by reg_date desc)A
+		) where rn between #{start} and #{end}
+	</select>
+
+
+	<select id="count1" resultType="int">
+		select count(*) from my
+		where (writer like #{keyword1}
+		or subject like #{keyword1})
+	</select>
+	
+	<delete id="memberDelete">
+	 delete from my_member
+	 where userid=#{userid}
+	</delete>
+	
+	<update id="likecount">
+	 update my
+	 set likecount = likecount+1
+	 where num=#{num}
+	</update>
+	
+	<select id="count2" resultType="int">
+	 select count(*) from my
+	 where writer=#{writer}
+	</select>
+	
+	<select id="myWriter" resultType="my.dto.MyDTO">
+	 select *
+		from(
+		select rownum as rn, A.*
+		from (select num,tab,writer,subject,reg_date,readcount,likecount,
+		(select count(*) from my_comment
+		where my_num=num) comment_count
+		from my 
+		where writer=#{writer}
+		order by reg_date desc)A
+		) where rn between #{start} and #{end}
+	</select>
+
+
+
+
+
+
+
+
+</mapper>
